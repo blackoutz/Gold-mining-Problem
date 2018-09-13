@@ -28,6 +28,10 @@ map = [[{'S':0},{'W':50},{'W':15},{'W':31},{'W':49},{'W':38},{'W':11},{'W':46},{
 [{'W':49},{'W':48},{'W':28},{'W':31},{'W':42},{'G':20103,'W':33},{'W':23},{'W':27},{'W':15},{'W':13},{'W':18},{'W':18},{'W':35},{'W':49},{'W':15},{'W':44}],
 [{'W':18},{'W':43},{'W':44},{'W':24},{'W':48},{'W':39},{'W':10},{'W':46},{'W':12},{'W':44},{'W':39},{'W':31},{'W':39},{'W':34},{'W':13},{'W':55}]]
 
+START = (0,0)
+globalPath = []
+globalCost = []
+worthyMap = []
 path = []
 globalCost = 0
 allMine = []
@@ -53,16 +57,28 @@ def running(row, col):
     if 'M' in map[row][col]:
         return None
     map[row][col]['M'] = 1
-    path.append([row, col])
 
     if 'G' in map[row][col] and not 'GM' in map[row][col]:
         mine = []
         findGold(row,col,mine)
-        cost = 999999
-        # for gold in mine:
-        #     newMap = map[:]
-        #     print(gold['pos'])
-        #     #path , cost = findShortestPath(newMap,0,0,mine)
+        minCost = 999999
+        minPath = []
+        costInYield = 0
+        for gold in mine:
+            newMap = map[:]
+            x,y = gold['pos']
+            costInYield+=newMap[x][y]['W']
+            path , cost = findShortestPath(newMap,0,0,x,y)
+            if cost < minCost:
+                minCost = cost
+                minPath = path
+                costInYield -= newMap[x][y]['W']
+
+        sumAllYield = 0
+
+        for i in mine:
+            sumAllYield += i['value']
+        worthyMap.append({'pathCost':minCost+costInYield, 'income':sumAllYield, 'profit':sumAllYield-(minCost+costInYield), 'path':minPath})
         allMine.append(mine)
 
     running(row+1, col)
@@ -81,23 +97,14 @@ def findClosetPoint(mine):
             closetPoint = [m['pos'][0], m['pos'][1]]
     return closetPoint
 
-def findShortestPath(newMap,row,col,mine):
+def findShortestPath(newMap,row,col,x,y):
 
-    if col < 0:
-        return None
-    elif col >= colMax:
-        return None
-    if row < 0:
-        return None
-    elif row >= rowMax:
-        return None
 
-    if 'SM' in newMap[row][col]:
-        return None
-    newMap[row][col]['SM'] = 1
+    # if 'SM' in newMap[row][col]:
+    #     return None
+    # newMap[row][col]['SM'] = 1
 
-    path,cost = ucs((row,col), (7,15), newMap)
-    print(cost)
+    path,cost = ucs((row,col), (x,y), newMap)
     return path,cost
 
     '''
@@ -140,10 +147,10 @@ def children(point, newMap):
 
     coordinate = {}
 
-    coordinate['up'] = newMap[row-1][col]['W'] if row-1 >= 0 and not 'SM' in newMap[row-1][col] and not 'R' in newMap[row-1][col] else 9999
-    coordinate['down'] = newMap[row+1][col]['W'] if row+1 < rowMax and not 'SM' in newMap[row+1][col] and not 'R' in newMap[row+1][col] else 9999
-    coordinate['left'] = newMap[row][col-1]['W'] if col-1 >= 0 and not 'SM' in newMap[row][col-1] and not 'R' in newMap[row][col-1] else 9999
-    coordinate['right'] = newMap[row][col+1]['W'] if col+1 < colMax and not 'SM' in newMap[row][col+1] and not 'R' in newMap[row][col+1] else 9999
+    coordinate['up'] = newMap[row-1][col]['W'] if row-1 >= 0 and not 'SM' in newMap[row-1][col] and not 'R' in newMap[row-1][col] and not 'S' in newMap[row-1][col] else 9999
+    coordinate['down'] = newMap[row+1][col]['W'] if row+1 < rowMax and not 'SM' in newMap[row+1][col] and not 'R' in newMap[row+1][col] and not 'S' in newMap[row+1][col] else 9999
+    coordinate['left'] = newMap[row][col-1]['W'] if col-1 >= 0 and not 'SM' in newMap[row][col-1] and not 'R' in newMap[row][col-1] and not 'S' in newMap[row][col-1] else 9999
+    coordinate['right'] = newMap[row][col+1]['W'] if col+1 < colMax and not 'SM' in newMap[row][col+1] and not 'R' in newMap[row][col+1] and not 'S' in newMap[row][col+1] else 9999
 
     children = [(row - 1, col), (row + 1, col),(row, col - 1), (row, col + 1) ]
     #print(coordinate)
@@ -226,15 +233,13 @@ def findGold(row, col, mine):
 
 
 running(0,0)
-print(allMine)
-#
-# lastPath = []
-# cost = 0
-newMap = map[:]
 
+maxGoldMine = 0
+winMap = {}
 
-shortestPath = findShortestPath(newMap,0,0,allMine[0])
-print(shortestPath)
-
-# children((0,2),map)
-
+for map in worthyMap:
+    print(map)
+    if(map['profit']>maxGoldMine):
+        maxGoldMine = map['profit']
+        winMap = map
+print('Winner = ' , winMap)

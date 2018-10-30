@@ -2,7 +2,7 @@ from scipy.spatial import distance
 import heapq
 from copy import deepcopy
 from collections import OrderedDict
-
+oill =0
 map =[[{'Start':0},{'Cost':47},{'Cost':50},{'Cost':28},{'Cost':16},{'Cost':31},{'Cost':44},{'Cost':32},{'Cost':21},{'Cost':18},{'Cost':39},{'Cost':28},{'Cost':50},{'Cost':17},{'Cost':38},{'Cost':11},{'Cost':48},{'Cost':30},{'Cost':49},{'Cost':20},{'Cost':28},{'Cost':10},{'Cost':19},{'Cost':25},{'Cost':25}],
 [{'Cost':31},{'Cost':44},{'Cost':20},{'Cost':10},{'Cost':46},{'Cost':33},{'Cost':43},{'Cost':19},{'Cost':43},{'Cost':33},{'Cost':36},{'Cost':25},{'Cost':48},{'Cost':43},{'Cost':31},{'Cost':32},{'Cost':26},{'Cost':11},{'Cost':18},{'Cost':19},{'Cost':27},{'Oil':42819,'Cost':22},{'Cost':39},{'Cost':32},{'Cost':36}],
 [{'Cost':36},{'Cost':15},{'Cost':15},{'Cost':42},{'Cost':19},{'Cost':25},{'Cost':19},{'Cost':11},{'Cost':21},{'Cost':27},{'Cost':18},{'Cost':17},{'Cost':44},{'Rock':0},{'Rock':0},{'Rock':0},{'Cost':21},{'Cost':18},{'Cost':17},{'Cost':21},{'Oil':14885,'Cost':48},{'Oil':99034,'Cost':42},{'Oil':97716,'Cost':24},{'Oil':26787,'Cost':27},{'Cost':43}],
@@ -29,26 +29,46 @@ map =[[{'Start':0},{'Cost':47},{'Cost':50},{'Cost':28},{'Cost':16},{'Cost':31},{
 [{'Cost':34},{'Cost':32},{'Cost':45},{'Cost':48},{'Cost':28},{'Oil':77762,'Cost':18},{'Cost':40},{'Cost':27},{'Cost':29},{'Cost':45},{'Cost':26},{'Cost':24},{'Cost':47},{'Cost':26},{'Cost':13},{'Cost':17},{'Cost':17},{'Cost':48},{'Cost':34},{'Cost':23},{'Cost':21},{'Cost':44},{'Cost':11},{'Cost':29},{'Cost':43}],
 [{'Cost':12},{'Cost':32},{'Cost':13},{'Cost':17},{'Cost':28},{'Cost':39},{'Cost':47},{'Cost':33},{'Cost':47},{'Cost':14},{'Cost':24},{'Cost':48},{'Cost':10},{'Cost':45},{'Cost':17},{'Cost':13},{'Cost':27},{'Cost':13},{'Cost':45},{'Cost':35},{'Cost':29},{'Cost':22},{'Cost':19},{'Cost':44},{'Cost':34}]]
 
+
 globalPath = []
 worthyMap = []
 
 path = []
 allOilWell = []
-
 colMax = len(map[0])
 rowMax = len(map)
 
-def running(row, col):
+def nearest_oil(row,col):
+    min_dis = 99
+    for i in range(25):
+        for j in range(25):
+            if 'Oil' in map[i][j] and 'OilMark' not in map[i][j]:
+                tmp = heuristic((i,j),(row,col))
+            else:
+                tmp = 99
+            if tmp < min_dis:
+                min_dis = tmp
+    return min_dis
+            
 
+def running(row, col, displacement):
+    nearest = nearest_oil(row,col)
+    if displacement <= nearest:
+        return None
+#    print(row+1,col+1,nearest,displacement)
     if col < 0 or col >= colMax or row < 0 or row >= rowMax:
         return None
 
-    if 'Mark' in map[row][col]:
-        return None
-    map[row][col]['Mark'] = 1
+#    if 'Mark' in map[row][col]:
+#        return None
+#    map[row][col]['Mark'] = 1
 
     if 'Oil' in map[row][col] and not 'OilMark' in map[row][col]:
         OilWell = []
+        global oill 
+        oill += 1
+        nearest = 99
+#        print('found')
         findOil(row, col, OilWell)
 
         minCost = 999999
@@ -74,10 +94,10 @@ def running(row, col):
         worthyMap.append({'PathCost':minCost+costInYield, 'Income':sumAllYield, 'Profit':sumAllYield-(minCost+costInYield), 'Path':minPath})
         allOilWell.append(OilWell)
 
-    running(row+1, col)
-    running(row-1, col)
-    running(row, col+1)
-    running(row, col-1)
+    running(row+1, col,nearest)
+    running(row-1, col,nearest)
+    running(row, col+1,nearest)
+    running(row, col-1,nearest)
     
 def findOil(row, col, OilWell):
 
@@ -100,7 +120,7 @@ def findOil(row, col, OilWell):
 
 def findShortestPath(newMap, row, col, x, y):
 
-    path,cost = ucs((row,col), (x,y), newMap)
+    path,cost = Astar((row,col), (x,y), newMap)
     return path,cost
 
 def children(point, newMap):
@@ -129,7 +149,7 @@ def children(point, newMap):
             direction.append(children[3])
     return direction
 
-def ucs(node, goal, grid):
+def Astar(node, goal, grid):
     # Initialize the queue with the root node
     queue = [(0, node, [])]
     # The list of seen items
@@ -150,7 +170,7 @@ def ucs(node, goal, grid):
         for child in children(point, grid):
             # Calculate the basic cost
             x,y = child
-            child_cost = grid[x][y]['Cost']#+heuristic(goal,(x,y))
+            child_cost = grid[x][y]['Cost']+heuristic(goal,(x,y))
             # If the child hasn't been seen
             if child not in seen:
                 # Add it to the heap
@@ -164,7 +184,7 @@ def heuristic(a, b):
     (x2, y2) = b
     return abs(x1 - x2) + abs(y1 - y2)
 
-running(0,0)
+running(0,0,99)
 maxOilWell = 0
 winMap = {}
 
